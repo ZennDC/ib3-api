@@ -6,15 +6,16 @@
  *
  * @note ICT implements the application logic against this abstract interface.
  *       Electronics provides the concrete derived class that translates commands
- *       and telemetry (e.g., over SPI via @ref protocol.h).
+ *       and telemetry (e.g., over SPI via @ref protocol.hpp).
  *
  * @see types.hpp
- * @see protocol.h
+ * @see protocol.hpp
  */
 
 #pragma once
 
 #include "types.hpp"
+#include <cstdint>
 #include <functional>
 #include <string>
 
@@ -62,10 +63,10 @@ namespace BikeHardware
         virtual bool set_motion(const MotionCommand &cmd) = 0;
 
         /**
-         * @brief Apply proportional analog braking (mechanical friction and/or regenerative energy recovery).
-         * @param force_pct Braking force normalized from 0.0f (released) to 1.0f (full braking).
+         * @brief Apply differentiated analog braking (front/rear balance to prevent pitchover, plus optional regen).
+         * @param cmd Braking setpoints for front wheel, rear wheel, and regenerative braking.
          */
-        virtual bool set_brake(float force_pct) = 0;
+        virtual bool set_brake(const BrakeCommand &cmd) = 0;
 
         /**
          * @brief Set or lock a stabilization lean/tilt angle offset (balance manipulation).
@@ -98,10 +99,11 @@ namespace BikeHardware
         virtual bool set_lock(bool locked) = 0;
 
         /**
-         * @brief Emit an acoustic warning signal (electronic bell / buzzer) for a set duration.
+         * @brief Emit an acoustic warning signal (bell, horn, warning tone, or alarm) for a set duration.
+         * @param type Specific acoustic signal profile to play.
          * @param duration_ms Duration of sound in milliseconds (default: 300 ms).
          */
-        virtual bool trigger_sound(uint16_t duration_ms = 300) = 0;
+        virtual bool trigger_sound(SoundType type = SoundType::BELL, uint16_t duration_ms = 300) = 0;
 
         /**
          * @brief Configure operational control mode (STANDBY, ACTIVE_AUTONOMOUS, MANUAL_REMOTE_CONTROL, etc.).

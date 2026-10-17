@@ -6,7 +6,7 @@
  * via the @ref BikeHardware::Interface.
  *
  * @see interface.hpp
- * @see protocol.h
+ * @see protocol.hpp
  */
 
 #pragma once
@@ -43,11 +43,12 @@ namespace BikeHardware
      */
     namespace SafetyFlag
     {
-        constexpr uint8_t EMERGENCY_STOP_ACTIVE = 1 << 0; ///< Hardware or software emergency stop active.
-        constexpr uint8_t MOTOR_STALL = 1 << 1;           ///< Drive motor stalled or overcurrent detected.
-        constexpr uint8_t WATCHDOG_TIMEOUT = 1 << 2;      ///< Communication heartbeat watchdog timeout.
-        constexpr uint8_t FALL_DETECTED = 1 << 3;         ///< Bicycle fall or excessive tilt angle detected by IMU.
-        constexpr uint8_t HARDWARE_FAULT = 1 << 4;        ///< General hardware fault on Safety PCB or power rail.
+        inline constexpr uint8_t EMERGENCY_STOP_ACTIVE = 1 << 0; ///< Hardware or software emergency stop active.
+        inline constexpr uint8_t MOTOR_STALL = 1 << 1;           ///< Drive motor stalled or overcurrent detected.
+        inline constexpr uint8_t WATCHDOG_TIMEOUT = 1 << 2;      ///< Communication heartbeat watchdog timeout.
+        inline constexpr uint8_t FALL_DETECTED = 1 << 3;         ///< Bicycle fall or excessive tilt angle detected by IMU.
+        inline constexpr uint8_t HARDWARE_FAULT = 1 << 4;        ///< General hardware fault on Safety PCB or power rail.
+        inline constexpr uint8_t SENSOR_FAULT = 1 << 5;          ///< Missing, disconnected, or corrupted sensor telemetry stream.
     }
 
     /**
@@ -72,11 +73,24 @@ namespace BikeHardware
      */
     struct GPS
     {
-        double latitude = 0.0;                  ///< Geodetic latitude in degrees (-90.0 to +90.0).
-        double longitude = 0.0;                 ///< Geodetic longitude in degrees (-180.0 to +180.0).
-        float altitude_m = 0.0f;                ///< Altitude above mean sea level in meters.
-        float speed_over_ground_mps = 0.0f;     ///< Ground speed in meters per second (m/s).
-        float heading_deg = 0.0f;               ///< Ground course / heading in degrees (0.0 to 360.0).
+        double latitude = 0.0;   ///< Geodetic latitude in degrees (-90.0 to +90.0).
+        double longitude = 0.0;  ///< Geodetic longitude in degrees (-180.0 to +180.0).
+        float altitude_m = 0.0f; ///< Altitude above mean sea level in meters.
+
+        /**
+         * @brief Ground speed in meters per second (m/s).
+         * @note Auxiliary reference metric only. Only valid while vehicle is actively in motion. For real-time feedback control loops,
+         *       always prioritize wheel-tachometer feedback via @ref BikeTelemetry::current_speed_mps.
+         */
+        float speed_over_ground_mps = 0.0f;
+
+        /**
+         * @brief Ground course / heading in degrees (0.0 to 360.0).
+         * @note Only valid while vehicle is actively in motion. When stationary or at low speeds,
+         *       rely on IMU yaw orientation via @ref IMUData::orientation_deg.
+         */
+        float heading_deg = 0.0f;
+
         float horizontal_accuracy_m = 0.0f;     ///< Estimated horizontal accuracy in meters (cm-level under RTK Fix).
         float vertical_accuracy_m = 0.0f;       ///< Estimated vertical accuracy in meters.
         uint8_t satellites_visible = 0;         ///< Number of tracked/used satellites.
@@ -170,18 +184,44 @@ namespace BikeHardware
         ACTIVE_AUTONOMOUS = 1,     ///< Autonomous driving and path following active.
         MANUAL_REMOTE_CONTROL = 2, ///< Manual teleoperation / controller override.
         EMERGENCY_STOP = 3,        ///< Emergency stop active, drive cut, brakes engaged.
-        HARDWARE_FAULT = 4         ///< Hardware or safety PCB critical failure.
+        HARDWARE_FAULT = 4,        ///< Hardware or safety PCB critical failure.
+        DEEP_SLEEP = 5             ///< Low-power sleep mode to conserve battery when parked.
     };
 
     /**
      * @brief Severity levels for diagnostics and system logging.
      */
-    enum class LogLevel
+    enum class LogLevel : uint8_t
     {
-        INFO,    ///< Informational operational messages.
-        WARNING, ///< Non-critical warnings or degraded conditions.
-        ERROR,   ///< Recoverable faults or rejected commands.
-        CRITICAL ///< Safety-critical failures requiring immediate shutdown.
+        DEBUG = 0,   ///< Low-level diagnostics, register states, and bus tracing.
+        INFO = 1,    ///< Informational operational messages.
+        WARNING = 2, ///< Non-critical warnings or degraded conditions.
+        ERROR = 3,   ///< Recoverable faults or rejected commands.
+        CRITICAL = 4 ///< Safety-critical failures requiring immediate shutdown.
+    };
+
+    /**
+     * @brief Acoustic warning sound types.
+     */
+    enum class SoundType : uint8_t
+    {
+        BELL = 0,    ///< Standard bicycle bell ring.
+        HORN = 1,    ///< Loud acoustic horn for vehicle warning.
+        WARNING = 2, ///< Caution / proximity alert tone.
+        ALARM = 3    ///< High-priority anti-theft or emergency alarm siren.
+    };
+
+    /**
+     * @brief Differentiated analog braking setpoints and energy recovery.
+     *
+     * Provides separate front/rear brake force controls to prevent over-the-bars pitchover
+     * during hard deceleration, alongside optional regenerative braking.
+     */
+    struct BrakeCommand
+    {
+        float front_force_pct = 0.0f;     ///< Front mechanical brake force (0.0f = released, 1.0f = full force).
+        float rear_force_pct = 0.0f;      ///< Rear mechanical brake force (0.0f = released, 1.0f = full force).
+        bool enable_regenerative = false; ///< Enable motor regenerative braking / energy recovery.
     };
 
 } // namespace BikeHardware
