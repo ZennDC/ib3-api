@@ -6,34 +6,34 @@
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-17%2F20-blue?logo=c%2B%2B)](include/)
 [![Docs](https://img.shields.io/badge/docs-MkDocs%20%7C%20Doxygen-blue?logo=materialformkdocs)](https://ZennDC.github.io/ib3-api/)
 
-- **API Referentie & Documentatie**: [https://ZennDC.github.io/ib3-api/](https://ZennDC.github.io/ib3-api/)
-- **Projectrapport & Requirements**: [PDF downloaden via site](https://ZennDC.github.io/ib3-api/assets/Report%20Vergadering%20IB3%20project.pdf) of [bekijken in repo](docs/assets/Report%20Vergadering%20IB3%20project.pdf)
+- **API Reference & Documentation**: [https://ZennDC.github.io/ib3-api/](https://ZennDC.github.io/ib3-api/)
+- **Project Report & Requirements**: [download the PDF from the site](https://ZennDC.github.io/ib3-api/assets/Report%20Vergadering%20IB3%20project.pdf) or [view it in the repository](docs/assets/Report%20Vergadering%20IB3%20project.pdf)
 
-## Bestands- en Projectstructuur
+## File and Project Structure
 
 ```text
 .
 ├── include/
-│   ├── interface.hpp       # Abstracte C++ HAL interface (BikeHardware::Interface)
-│   ├── types.hpp           # High-level datamodellen (BikeTelemetry, MotionCommand, enums, SafetyFlag)
-│   └── protocol.h          # DRAFT - Binaire SPI-protocoldefinities, headers, opcodes en wire-structs
+│   ├── interface.hpp       # Abstract C++ HAL interface (BikeHardware::Interface)
+│   ├── types.hpp           # High-level data models (BikeTelemetry, MotionCommand, enums, SafetyFlag)
+│   └── protocol.hpp        # DRAFT - Binary SPI protocol definitions, headers, opcodes, and wire structs
 ├── docs/
-│   ├── index.md            # Hoofdpagina van de MkDocs-documentatie
-│   ├── requirements.txt    # Python dependencies voor MkDocs & MkDoxy
+│   ├── index.md            # Main MkDocs documentation page
+│   ├── requirements.txt    # Python dependencies for MkDocs & MkDoxy
 │   └── assets/
-│       └── Report Vergadering IB3 project.pdf  # Verslag met requirements
+│       └── Report Vergadering IB3 project.pdf  # Report containing the requirements
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml      # CI/CD pipeline voor automatische publicatie naar GitHub Pages
-├── mkdocs.yml              # MkDocs configuratie
-└── README.md               # Dit document
+│       └── deploy.yml      # CI/CD pipeline for automatic GitHub Pages publication
+├── mkdocs.yml              # MkDocs configuration
+└── README.md               # This document
 ```
 
 ---
 
-## Voorbeeldcode
+## Example Code
 
-### ICT Gebruiksvoorbeeld
+### ICT Usage Example
 
 ```cpp
 #include "interface.hpp"
@@ -42,23 +42,23 @@
 #include <chrono>
 
 void control_loop(BikeHardware::Interface& bike) {
-    // 1. Initialiseer de hardwareverbinding
+    // 1. Initialize the hardware connection
     if (!bike.init()) {
-        std::cerr << "Fout bij initialisatie van fietshardware!\n";
+        std::cerr << "Error initializing bicycle hardware!\n";
         return;
     }
 
-    // 2. Registreer callback voor telemetrie-updates
+    // 2. Register a callback for telemetry updates
     bike.register_telemetry_callback([](const BikeHardware::BikeTelemetry& telem) {
         if (telem.safety_flags & BikeHardware::SafetyFlag::FALL_DETECTED) {
-            std::cerr << "ALARM: Fiets is gekanteld / val gedetecteerd!\n";
+            std::cerr << "ALARM: Bicycle has tipped over / fall detected!\n";
         }
     });
 
-    // 3. Verlichting instellen op automatische modus
+    // 3. Set lights to automatic mode
     bike.set_lights(BikeHardware::LightMode::AUTO);
 
-    // 4. Stuur een bewegingscommando: 2.5 m/s, stuurhoek 3 graden
+    // 4. Send a motion command: 2.5 m/s, steering angle 3 degrees
     BikeHardware::MotionCommand cmd;
     cmd.target_speed_mps = 2.5f;
     cmd.target_acceleration_mps2 = 0.5f;
@@ -66,7 +66,7 @@ void control_loop(BikeHardware::Interface& bike) {
     cmd.duration_rotations = 8.0f;
     bike.set_motion(cmd);
 
-    // 5. Regelmatige besturingsloop met heartbeat
+    // 5. Regular control loop with heartbeat
     while (bike.get_status() == BikeHardware::SystemStatus::ACTIVE_AUTONOMOUS) {
         bike.send_heartbeat();
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -76,68 +76,68 @@ void control_loop(BikeHardware::Interface& bike) {
 }
 ```
 
-### Elektronica HAL Skeleton
+### Electronics HAL Skeleton
 
 ```cpp
 #include "interface.hpp"
-#include "protocol.h"
+#include "protocol.hpp"
 
 namespace BikeHardware {
 
 class BikeHardwareSPI : public Interface {
 public:
     bool init() override {
-        // Initialiseer SPI-bus naar ESP32 en voer handshake uit
+        // Initialize the SPI bus to the ESP32 and perform the handshake
         return true;
     }
 
     void shutdown() override {
-        // Schakel actuatoren veilig uit en sluit communicatiebus
+        // Safely disable actuators and close the communication bus
     }
 
     bool send_heartbeat() override {
-        // Verstuur WIRE_OP_HEARTBEAT frame over SPI
+        // Send a Protocol::Opcode::HEARTBEAT frame over SPI
         return true;
     }
 
     void emergency_stop(const std::string& reason) override {
-        // Verstuur WIRE_OP_EMERGENCY_STOP en bekrachtig remmen
+        // Send WIRE_OP_EMERGENCY_STOP and engage the brakes
     }
 
     bool reset_emergency_stop() override {
-        // Verstuur WIRE_OP_RESET_EMERGENCY indien veilig
+        // Send WIRE_OP_RESET_EMERGENCY if it is safe to do so
         return true;
     }
 
     bool set_motion(const MotionCommand& cmd) override {
-        // Converteer float waarden naar WireMotionCmd integer representaties en verstuur over SPI
+        // Convert float values to WireMotionCmd integer representations and send them over SPI
         return true;
     }
 
-    bool set_brake(float force_pct) override {
-        // Converteer 0.0f-1.0f naar WireBrakeCmd (0-100%) en verstuur over SPI
+    bool set_brake(const BrakeCommand& cmd) override {
+        // Convert cmd.front_force_pct, cmd.rear_force_pct, and enable_regenerative to WireBrakeCmd
         return true;
     }
 
-    // ... overige virtuele methoden implementeren ...
+    // ... implement remaining virtual methods ...
 };
 
 } // namespace BikeHardware
 ```
 
-## Lokaal Documentatie Previewen
+## Preview Documentation Locally
 
-Zorg dat `doxygen` en Python geïnstalleerd zijn op je systeem:
+Make sure `doxygen` and Python are installed on your system:
 
 ```bash
 # Dependencies (Ubuntu)
 sudo apt update && sudo apt install -y doxygen graphviz
 
-# Virtuele Python omgeving
+# Python virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r docs/requirements.txt
 
-# Start lokale server
+# Start the local server
 mkdocs serve
 ```
