@@ -1,0 +1,52 @@
+site_name: "Bike Hardware API"
+site_url: "https://ZennDC.github.io/ib3-api/"
+site_description: "Hardware Interface and Communication Protocol Documentation"
+docs_dir: "docs"
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default 
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+
+plugins:
+  - search
+  - mkdoxy:
+      projects:
+        bikeApi:
+          src-dirs: include
+          full-doc: true
+          doxy-cfg:
+            FILE_PATTERNS: "*.hpp *.h"
+            RECURSIVE: "YES"
+            EXTRACT_ALL: "YES"
+            EXTRACT_STATIC: "YES"
+            HIDE_UNDOC_MEMBERS: "NO"
+            HIDE_UNDOC_CLASSES: "NO"
+
+nav:
+  - Home: index.md
+  - API Reference:
+      - Classes: bikeApi/annotated.md
+      - Namespaces: bikeApi/namespaces.md
+      - Files: bikeApi/files.md
+      - Class Hierarchy: bikeApi/hierarchy.md
